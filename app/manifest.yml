@@ -1,0 +1,57 @@
+manifest_version: 1
+
+version:
+  name: v2
+  label: "Snowsled v2"
+  comment: "Snowsled Native Application - Pre-Sales POC Edition"
+
+artifacts:
+  setup_script: setup_script.sql
+  default_streamlit: APP_SCHEMA.SNOWSLED_PLATFORM
+  readme: README.md
+  extension_code: true
+
+privileges:
+  - EXECUTE TASK:
+      description: "Run scheduled tasks in the background"
+  - CREATE SHARE:
+      description: "Share data with consumers via Secure Data Sharing"
+  - IMPORTED PRIVILEGES ON SNOWFLAKE DB:
+      description: "Access account usage metadata"
+  - CREATE DATABASE:
+      description: "Create project databases (DSI/DSO) for each Snowsled project"
+  - CREATE WAREHOUSE:
+      description: "Create a dedicated warehouse for each Snowsled project"
+  - CREATE NETWORK RULE:
+      description: "Crée les règles réseau autorisant les appels HTTPS sortants vers dbt Cloud, Fivetran et GitHub"
+  - CREATE INTEGRATION:
+      description: "Crée l'External Access Integration permettant aux procédures stockées d'appeler les APIs tierces"
+
+references:
+  - GITHUB_SECRET:
+      label: "GitHub Personal Access Token"
+      description: "Secret Snowflake contenant le PAT GitHub"
+      object_type: SECRET
+      multi_valued: false
+      privileges:
+        - USAGE
+      register_callback: APP_SCHEMA.REGISTER_REFERENCE
+      configuration_callback: APP_SCHEMA.REGISTER_REFERENCE
+  - DBT_CLOUD_SECRET:
+      label: "dbt Cloud API Key"
+      description: "Secret Snowflake contenant la cle API dbt Cloud"
+      object_type: SECRET
+      multi_valued: false
+      privileges:
+        - USAGE
+      register_callback: APP_SCHEMA.REGISTER_REFERENCE
+      configuration_callback: APP_SCHEMA.REGISTER_REFERENCE
+  - FIVETRAN_SECRET:
+      label: "Fivetran API Credentials"
+      description: "Secret Snowflake contenant les credentials Fivetran"
+      object_type: SECRET
+      multi_valued: false
+      privileges:
+        - USAGE
+      register_callback: APP_SCHEMA.REGISTER_REFERENCE
+      configuration_callback: APP_SCHEMA.REGISTER_REFERENCE

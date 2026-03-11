@@ -1,0 +1,28 @@
+# Credentials locaux — NE JAMAIS COMMITTER
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Snowflake CLI
+.snowflake/
+*.zip
+output/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

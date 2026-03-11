@@ -1,0 +1,22 @@
+# ============================================================
+# Dépendances pour le développement LOCAL de Snowsled v2
+# Installation : pip install -r requirements-local.txt
+# ============================================================
+
+# ── Snowflake ────────────────────────────────────────────────
+snowflake-snowpark-python[pandas]>=1.21.0
+snowflake-connector-python>=3.0.0
+
+# ── Streamlit ────────────────────────────────────────────────
+streamlit>=1.32.0
+
+# ── Données & visualisation ──────────────────────────────────
+pandas>=2.0.0
+plotly>=5.18.0
+
+# ── Config locale ────────────────────────────────────────────
+python-dotenv>=1.0.0          # Chargement du fichier .env
+toml>=0.10.2                  # Lecture config Snowflake CLI
+
+# ── Python ───────────────────────────────────────────────────
+# Python >= 3.11 requis (correspond au runtime Snowflake)

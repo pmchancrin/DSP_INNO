@@ -1,0 +1,43 @@
+definition_version: 1
+
+native_app:
+  name: snowsled_v2
+  artifacts:
+    - src: app/manifest.yml
+      dest: ./
+    - src: app/setup_script.sql
+      dest: ./
+    - src: app/README.md
+      dest: ./
+    - src: app/src/
+      dest: ./
+    # utils copied into every Streamlit directory so 'from utils.session import ...' works
+    - src: app/src/utils/__init__.py
+      dest: src/snowsled_platform/utils/
+    - src: app/src/utils/session.py
+      dest: src/snowsled_platform/utils/
+    - src: app/src/utils/__init__.py
+      dest: src/snowsled_admin/utils/
+    - src: app/src/utils/session.py
+      dest: src/snowsled_admin/utils/
+    - src: app/src/utils/__init__.py
+      dest: src/snowsled/utils/
+    - src: app/src/utils/session.py
+      dest: src/snowsled/utils/
+    - src: app/src/utils/__init__.py
+      dest: src/finops_monitor/utils/
+    - src: app/src/utils/session.py
+      dest: src/finops_monitor/utils/
+
+  application:
+    name: SNOWSLED_V2
+    debug: false
+    post_deploy:
+      - sql_script: scripts/post_deploy.sql
+
+  package:
+    name: SNOWSLED_V2_PKG
+    role: SNOWSLED_PKG_ROLE
+    distribution: internal
+    post_deploy:
+      - sql_script: scripts/package_post_create.sql
