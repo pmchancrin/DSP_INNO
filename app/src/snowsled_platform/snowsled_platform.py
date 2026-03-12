@@ -201,24 +201,30 @@ elif page == "snowflake_setup":
         )
         wh_auto_resume = st.checkbox("Auto-resume", value=True, key="wh_auto_resume")
 
-        if st.button("Créer / Mettre à jour le Warehouse", key="btn_wh"):
-            sql = f"""
-                CREATE WAREHOUSE IF NOT EXISTS {wh_name}
-                  WITH WAREHOUSE_SIZE = '{wh_size}'
-                  AUTO_SUSPEND = {wh_auto_suspend}
-                  AUTO_RESUME  = {'TRUE' if wh_auto_resume else 'FALSE'}
-                  INITIALLY_SUSPENDED = TRUE
-                  COMMENT = 'Créé via Snowsled Platform'
-            """
-            if run_sql(sql, f"Warehouse **{wh_name}** prêt."):
-                upsert_config("DEFAULT_WAREHOUSE", wh_name, "Warehouse par défaut Snowsled")
-                upsert_config("DEFAULT_WH_SIZE", wh_size, "Taille du warehouse par défaut")
+        wh_sql = (
+            f"USE ROLE SYSADMIN;\n\n"
+            f"CREATE WAREHOUSE IF NOT EXISTS {wh_name}\n"
+            f"  WITH WAREHOUSE_SIZE = '{wh_size}'\n"
+            f"  AUTO_SUSPEND = {wh_auto_suspend}\n"
+            f"  AUTO_RESUME  = {'TRUE' if wh_auto_resume else 'FALSE'}\n"
+            f"  INITIALLY_SUSPENDED = TRUE\n"
+            f"  COMMENT = 'Créé via Snowsled Platform';"
+        )
+
+        col_btn, col_empty = st.columns([1, 3])
+        with col_btn:
+            if st.button("Créer / Mettre à jour le Warehouse", key="btn_wh"):
+                if run_sql(wh_sql.split(";\n\n", 1)[1].rstrip(";"),
+                           f"Warehouse **{wh_name}** prêt."):
+                    upsert_config("DEFAULT_WAREHOUSE", wh_name, "Warehouse par défaut Snowsled")
+                    upsert_config("DEFAULT_WH_SIZE", wh_size, "Taille du warehouse par défaut")
+
+        with st.expander("📋 Commande SQL équivalente (Worksheet Snowsight)"):
+            st.code(wh_sql, language="sql")
 
         st.markdown("---")
         st.subheader("Warehouses existants")
-        wh_df = session.sql("""
-            SHOW WAREHOUSES
-        """).to_pandas()
+        wh_df = session.sql("SHOW WAREHOUSES").to_pandas()
         if not wh_df.empty:
             st.dataframe(
                 wh_df[["name", "size", "state", "auto_suspend"]],
@@ -243,22 +249,35 @@ elif page == "snowflake_setup":
 
         data_retention = st.slider("Data Retention Time (jours)", 0, 90, value=7, key="data_ret")
 
+        db_sql = (
+            f"USE ROLE SYSADMIN;\n\n"
+            f"CREATE DATABASE IF NOT EXISTS {dsi_db}\n"
+            f"  DATA_RETENTION_TIME_IN_DAYS = {data_retention}\n"
+            f"  COMMENT = 'Couche intégration brute - Snowsled';\n\n"
+            f"CREATE DATABASE IF NOT EXISTS {dso_db}\n"
+            f"  DATA_RETENTION_TIME_IN_DAYS = {data_retention}\n"
+            f"  COMMENT = 'Couche output curated - Snowsled';"
+        )
+
         if st.button("Créer les bases DSI + DSO", key="btn_db"):
-            ok_dsi = run_sql(f"""
-                CREATE DATABASE IF NOT EXISTS {dsi_db}
-                DATA_RETENTION_TIME_IN_DAYS = {data_retention}
-                COMMENT = 'Couche intégration brute - Snowsled'
-            """, f"Base **{dsi_db}** créée.")
-
-            ok_dso = run_sql(f"""
-                CREATE DATABASE IF NOT EXISTS {dso_db}
-                DATA_RETENTION_TIME_IN_DAYS = {data_retention}
-                COMMENT = 'Couche output curated - Snowsled'
-            """, f"Base **{dso_db}** créée.")
-
+            ok_dsi = run_sql(
+                f"CREATE DATABASE IF NOT EXISTS {dsi_db}\n"
+                f"  DATA_RETENTION_TIME_IN_DAYS = {data_retention}\n"
+                f"  COMMENT = 'Couche intégration brute - Snowsled'",
+                f"Base **{dsi_db}** créée."
+            )
+            ok_dso = run_sql(
+                f"CREATE DATABASE IF NOT EXISTS {dso_db}\n"
+                f"  DATA_RETENTION_TIME_IN_DAYS = {data_retention}\n"
+                f"  COMMENT = 'Couche output curated - Snowsled'",
+                f"Base **{dso_db}** créée."
+            )
             if ok_dsi and ok_dso:
                 upsert_config(f"DB_DSI_{project_name}", dsi_db, f"Base DSI projet {project_name}")
                 upsert_config(f"DB_DSO_{project_name}", dso_db, f"Base DSO projet {project_name}")
+
+        with st.expander("📋 Commande SQL équivalente (Worksheet Snowsight)"):
+            st.code(db_sql, language="sql")
 
     # -- Rôles
     with tab3:
