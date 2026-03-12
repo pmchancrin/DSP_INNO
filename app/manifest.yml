@@ -51,3 +51,21 @@ references:
         - USAGE
       register_callback: APP_SCHEMA.REGISTER_REFERENCE
       configuration_callback: APP_SCHEMA.REGISTER_REFERENCE
+  - GITLAB_SECRET:
+      label: "GitLab Personal Access Token"
+      description: "Secret Snowflake contenant le PAT GitLab (alternative à GitHub)"
+      object_type: SECRET
+      multi_valued: false
+      privileges:
+        - USAGE
+      register_callback: APP_SCHEMA.REGISTER_REFERENCE
+      configuration_callback: APP_SCHEMA.REGISTER_REFERENCE
+  - AZURE_DEVOPS_SECRET:
+      label: "Azure DevOps Personal Access Token"
+      description: "Secret Snowflake contenant le PAT Azure DevOps (alternative à GitHub)"
+      object_type: SECRET
+      multi_valued: false
+      privileges:
+        - USAGE
+      register_callback: APP_SCHEMA.REGISTER_REFERENCE
+      configuration_callback: APP_SCHEMA.REGISTER_REFERENCE

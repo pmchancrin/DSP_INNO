@@ -128,7 +128,7 @@ st.sidebar.markdown("---")
 pages = {
     "🏠  Accueil":          "home",
     "⚙️  Compte Snowflake": "snowflake_setup",
-    "🐙  GitHub":           "github",
+    "�  Source Control":   "git",
     "🔵  dbt Cloud":        "dbt",
     "🔴  Fivetran":         "fivetran",
     "❄️  Compliance":       "compliance",
@@ -144,7 +144,7 @@ if page == "home":
     
     Cette application vous permet de :
     - Configurer les bases de votre compte Snowflake (warehouse, bases, rôles)
-    - Connecter un compte **GitHub** (Personal Access Token)
+    - Connecter un gestionnaire de code source (**GitHub**, **GitLab** ou **Azure DevOps**)
     - Connecter un compte trial **dbt Cloud**
     - Connecter un compte trial **Fivetran**
     """)
@@ -290,63 +290,95 @@ elif page == "snowflake_setup":
                     COMMENT = '{role_types[r]} - Créé via Snowsled'
                 """, f"Rôle **{role_name}** créé.")
 
-# ── PAGE : GitHub ─────────────────────────────────────────────
-elif page == "github":
-    st.title("🐙 Connexion GitHub")
+# ── PAGE : Source Control (GitHub / GitLab / Azure DevOps) ───
+elif page == "git":
+    st.title("🔗 Connexion Source Control")
     st.markdown("""
-    Connectez votre compte GitHub pour permettre à Snowsled de :
+    Connectez votre gestionnaire de code source pour permettre à Snowsled de :
     - Versionner les objets SQL / dbt models
     - Synchroniser les configurations
     - Déclencher des workflows CI/CD
     """)
 
-    existing = get_connection("GITHUB")
+    PROVIDERS = {
+        "GitHub": {
+            "key":           "GITHUB",
+            "url":           "https://api.github.com",
+            "token_label":   "Personal Access Token (PAT)",
+            "token_help":    "Scopes requis : repo, workflow, read:org",
+            "org_label":     "Organisation / Utilisateur GitHub",
+            "secret_name":   "SNOWSLED_GITHUB_PAT",
+        },
+        "GitLab": {
+            "key":           "GITLAB",
+            "url":           "https://gitlab.com",
+            "token_label":   "Personal Access Token (PAT)",
+            "token_help":    "Scopes requis : api, read_repository",
+            "org_label":     "Namespace / Groupe GitLab",
+            "secret_name":   "SNOWSLED_GITLAB_PAT",
+        },
+        "Azure DevOps": {
+            "key":           "AZURE_DEVOPS",
+            "url":           "https://dev.azure.com",
+            "token_label":   "Personal Access Token (PAT)",
+            "token_help":    "Scopes requis : Code (Read), Project and Team (Read)",
+            "org_label":     "Organisation Azure DevOps",
+            "secret_name":   "SNOWSLED_AZDEVOPS_PAT",
+        },
+    }
 
-    with st.form("github_form"):
-        st.subheader("Paramètres GitHub")
-        gh_pat      = st.text_input(
-            "Personal Access Token (PAT)",
+    provider_name = st.selectbox(
+        "Fournisseur de code source",
+        options=list(PROVIDERS.keys()),
+        key="git_provider",
+    )
+    prov     = PROVIDERS[provider_name]
+    conn_key = prov["key"]
+    existing = get_connection(conn_key)
+
+    with st.form("git_form"):
+        st.subheader(f"Paramètres {provider_name}")
+        git_token = st.text_input(
+            prov["token_label"],
             value=existing.get("SECRET_REF", ""),
             type="password",
-            help="Scopes requis : repo, workflow, read:org"
+            help=prov["token_help"],
         )
-        gh_org      = st.text_input(
-            "Organisation / Utilisateur GitHub",
+        git_org = st.text_input(
+            prov["org_label"],
             value=existing.get("ACCOUNT_ID", ""),
         )
-        gh_repo     = st.text_input(
+        git_repo = st.text_input(
             "Dépôt principal (ex: mon-org/snowsled-poc)",
-            value=get_config("GITHUB_REPO") or "",
+            value=get_config(f"{conn_key}_REPO") or "",
         )
         submitted = st.form_submit_button("Enregistrer la connexion")
 
     if submitted:
-        if not gh_pat or not gh_org:
-            st.warning("Le PAT et l'organisation sont requis.")
+        if not git_token or not git_org:
+            st.warning(f"Le token et l'{prov['org_label'].lower()} sont requis.")
         else:
-            # Stocker le secret dans un secret Snowflake
-            secret_name = "SNOWSLED_GITHUB_PAT"
+            secret_name = prov["secret_name"]
             run_sql(f"""
                 CREATE OR REPLACE SECRET {secret_name}
                   TYPE = GENERIC_STRING
-                  SECRET_STRING = $${gh_pat}$$
-                  COMMENT = 'GitHub PAT - Snowsled'
+                  SECRET_STRING = $${git_token}$$
+                  COMMENT = '{provider_name} PAT - Snowsled'
             """)
             upsert_connection(
-                "GITHUB", "GITHUB",
-                "https://api.github.com",
-                gh_org, secret_name
+                conn_key, conn_key,
+                prov["url"], git_org, secret_name,
             )
-            if gh_repo:
-                upsert_config("GITHUB_REPO", gh_repo, "Dépôt GitHub principal Snowsled")
-            st.success("Configuration GitHub enregistrée !")
+            if git_repo:
+                upsert_config(f"{conn_key}_REPO", git_repo, f"Dépôt {provider_name} principal Snowsled")
+            st.success(f"Configuration {provider_name} enregistrée !")
 
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Tester la connexion GitHub", key="btn_test_gh"):
+        if st.button(f"Tester la connexion {provider_name}", key="btn_test_git"):
             with st.spinner("Test en cours..."):
-                result = test_connection("GITHUB")
+                result = test_connection(conn_key)
                 if result and result.get("status") == "CONNECTED":
                     st.success(f"✅ {result['message']}")
                 else:

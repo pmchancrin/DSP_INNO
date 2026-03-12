@@ -818,14 +818,15 @@ def install_eai_procedures(session):
     run(
         'CREATE OR REPLACE NETWORK RULE APP_SCHEMA.EXTERNAL_APIS_RULE'
         ' TYPE=HOST_PORT MODE=EGRESS'
-        " VALUE_LIST=('cloud.getdbt.com','api.fivetran.com','api.github.com')",
+        " VALUE_LIST=('cloud.getdbt.com','api.fivetran.com','api.github.com','gitlab.com','dev.azure.com')",
         'NETWORK_RULE'
     )
     if not run(
         'CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION SNOWSLED_EAI'
         ' ALLOWED_NETWORK_RULES=(APP_SCHEMA.EXTERNAL_APIS_RULE)'
         " ALLOWED_AUTHENTICATION_SECRETS=(reference('GITHUB_SECRET'),"
-        "reference('DBT_CLOUD_SECRET'),reference('FIVETRAN_SECRET'))"
+        "reference('DBT_CLOUD_SECRET'),reference('FIVETRAN_SECRET'),"
+        "reference('GITLAB_SECRET'),reference('AZURE_DEVOPS_SECRET'))"
         ' ENABLED=TRUE',
         'EAI'
     ):
@@ -853,6 +854,32 @@ def test_connection(session, connection_name):
                 d = resp.json()
                 msg = f"Connecte en tant que {d.get('login','?')} ({d.get('name','?')})"
                 st  = 'CONNECTED'
+            else:
+                msg, st = f'Erreur HTTP {resp.status_code}', 'ERROR'
+        elif ct == 'GITLAB':
+            token = _snowflake.get_generic_secret_string('gitlab_token')
+            resp  = req.get('https://gitlab.com/api/v4/user',
+                            headers={'PRIVATE-TOKEN': token}, timeout=10)
+            if resp.status_code == 200:
+                d = resp.json()
+                msg = f"Connecte en tant que {d.get('username','?')} ({d.get('name','?')})"
+                st  = 'CONNECTED'
+            else:
+                msg, st = f'Erreur HTTP {resp.status_code}', 'ERROR'
+        elif ct == 'AZURE_DEVOPS':
+            import base64
+            token   = _snowflake.get_generic_secret_string('azure_devops_token')
+            org_row = session.sql(
+                "SELECT ACCOUNT_ID FROM CONFIG_SCHEMA.EXTERNAL_CONNECTIONS"
+                " WHERE CONNECTION_NAME = 'AZURE_DEVOPS'"
+            ).collect()
+            org   = org_row[0]['ACCOUNT_ID'] if org_row else ''
+            creds = base64.b64encode(f':{token}'.encode()).decode()
+            resp  = req.get(f'https://dev.azure.com/{org}/_apis/projects?api-version=7.0',
+                            headers={'Authorization': f'Basic {creds}'}, timeout=10)
+            if resp.status_code == 200:
+                cnt = len(resp.json().get('value', []))
+                msg, st = f'{cnt} projet(s) Azure DevOps trouve(s)', 'CONNECTED'
             else:
                 msg, st = f'Erreur HTTP {resp.status_code}', 'ERROR'
         elif ct == 'DBT_CLOUD':
@@ -893,7 +920,9 @@ def test_connection(session, connection_name):
         " EXTERNAL_ACCESS_INTEGRATIONS=(SNOWSLED_EAI)"
         " SECRETS=('github_token'=reference('GITHUB_SECRET'),"
         "'dbt_token'=reference('DBT_CLOUD_SECRET'),"
-        "'fivetran_creds'=reference('FIVETRAN_SECRET'))"
+        "'fivetran_creds'=reference('FIVETRAN_SECRET'),"
+        "'gitlab_token'=reference('GITLAB_SECRET'),"
+        "'azure_devops_token'=reference('AZURE_DEVOPS_SECRET'))"
         " HANDLER='test_connection' AS " + DD + b_tc + DD,
         'TEST_CONNECTION'
     )
