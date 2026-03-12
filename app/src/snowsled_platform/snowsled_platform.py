@@ -183,13 +183,19 @@ if page == "home":
 # ── PAGE : Compte Snowflake ───────────────────────────────────
 elif page == "snowflake_setup":
     st.title("⚙️ Setup du compte Snowflake")
-    st.markdown("Configurez les ressources de base de votre compte Snowflake.")
+    st.info(
+        "**Limitation Snowflake Native App** : `CREATE WAREHOUSE`, `CREATE DATABASE` et "
+        "`CREATE ROLE` nécessitent `SYSADMIN` / `ACCOUNTADMIN` et ne peuvent pas être exécutés "
+        "directement depuis une Native App. Configurez les paramètres ci-dessous, copiez le SQL "
+        "généré et exécutez-le dans un **Worksheet Snowsight**.",
+        icon="ℹ️",
+    )
 
     tab1, tab2, tab3 = st.tabs(["Warehouse", "Bases de données", "Rôles"])
 
     # -- Warehouses
     with tab1:
-        st.subheader("Création d'un Virtual Warehouse")
+        st.subheader("Génération du script — Virtual Warehouse")
         wh_name = st.text_input("Nom du warehouse", value="DSP_WH", key="wh_name")
         wh_size = st.selectbox(
             "Taille", ["X-SMALL", "SMALL", "MEDIUM", "LARGE", "X-LARGE"],
@@ -210,17 +216,8 @@ elif page == "snowflake_setup":
             f"  INITIALLY_SUSPENDED = TRUE\n"
             f"  COMMENT = 'Créé via Snowsled Platform';"
         )
-
-        col_btn, col_empty = st.columns([1, 3])
-        with col_btn:
-            if st.button("Créer / Mettre à jour le Warehouse", key="btn_wh"):
-                if run_sql(wh_sql.split(";\n\n", 1)[1].rstrip(";"),
-                           f"Warehouse **{wh_name}** prêt."):
-                    upsert_config("DEFAULT_WAREHOUSE", wh_name, "Warehouse par défaut Snowsled")
-                    upsert_config("DEFAULT_WH_SIZE", wh_size, "Taille du warehouse par défaut")
-
-        with st.expander("📋 Commande SQL équivalente (Worksheet Snowsight)"):
-            st.code(wh_sql, language="sql")
+        st.markdown("**📋 Copiez ce script dans un Worksheet Snowsight (rôle `SYSADMIN`) :**")
+        st.code(wh_sql, language="sql")
 
         st.markdown("---")
         st.subheader("Warehouses existants")
@@ -233,8 +230,8 @@ elif page == "snowflake_setup":
 
     # -- Bases de données
     with tab2:
-        st.subheader("Création des bases de données")
-        st.info("Les bases DSI et DSO seront créées selon la convention de nommage configurée dans **Snowsled Admin**.")
+        st.subheader("Génération du script — Bases de données")
+        st.caption("Les bases DSI et DSO seront créées selon la convention de nommage configurée dans **Snowsled Admin**.")
 
         project_name = st.text_input(
             "Nom du projet / domaine (ex: RETAIL, FINANCE, MARKETING)",
@@ -258,35 +255,14 @@ elif page == "snowflake_setup":
             f"  DATA_RETENTION_TIME_IN_DAYS = {data_retention}\n"
             f"  COMMENT = 'Couche output curated - Snowsled';"
         )
-
-        if st.button("Créer les bases DSI + DSO", key="btn_db"):
-            ok_dsi = run_sql(
-                f"CREATE DATABASE IF NOT EXISTS {dsi_db}\n"
-                f"  DATA_RETENTION_TIME_IN_DAYS = {data_retention}\n"
-                f"  COMMENT = 'Couche intégration brute - Snowsled'",
-                f"Base **{dsi_db}** créée."
-            )
-            ok_dso = run_sql(
-                f"CREATE DATABASE IF NOT EXISTS {dso_db}\n"
-                f"  DATA_RETENTION_TIME_IN_DAYS = {data_retention}\n"
-                f"  COMMENT = 'Couche output curated - Snowsled'",
-                f"Base **{dso_db}** créée."
-            )
-            if ok_dsi and ok_dso:
-                upsert_config(f"DB_DSI_{project_name}", dsi_db, f"Base DSI projet {project_name}")
-                upsert_config(f"DB_DSO_{project_name}", dso_db, f"Base DSO projet {project_name}")
-
-        with st.expander("📋 Commande SQL équivalente (Worksheet Snowsight)"):
-            st.code(db_sql, language="sql")
+        st.markdown("**📋 Copiez ce script dans un Worksheet Snowsight (rôle `SYSADMIN`) :**")
+        st.code(db_sql, language="sql")
 
     # -- Rôles
     with tab3:
-        st.subheader("Création des rôles fonctionnels")
+        st.subheader("Génération du script — Rôles fonctionnels")
         st.info(
-            "⚠️ **Limitation Snowflake Native App** : `CREATE ROLE` nécessite le rôle "
-            "`ACCOUNTADMIN` et ne peut pas être exécuté directement depuis une Native App. "
-            "Copiez le script SQL généré ci-dessous et exécutez-le dans un **Worksheet Snowsight** "
-            "avec le rôle `ACCOUNTADMIN`.",
+            "Rôle requis : `ACCOUNTADMIN`",
             icon="ℹ️",
         )
 
