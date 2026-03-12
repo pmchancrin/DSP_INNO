@@ -22,8 +22,6 @@ privileges:
       description: "Create project databases (DSI/DSO) for each Snowsled project"
   - CREATE WAREHOUSE:
       description: "Create a dedicated warehouse for each Snowsled project"
-  - CREATE INTEGRATION:
-      description: "Crée l'External Access Integration permettant aux procédures stockées d'appeler les APIs tierces"
 
 references:
   - GITHUB_SECRET:
