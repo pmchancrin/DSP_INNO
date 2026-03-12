@@ -18,26 +18,30 @@ CREATE SCHEMA IF NOT EXISTS AUDIT_SCHEMA;
 -- ---------------------------------------------------------
 -- 1b. NETWORK RULE & EXTERNAL ACCESS INTEGRATION
 -- Autorise les appels HTTPS sortants vers les APIs tierces.
--- Requiert que le consommateur octroie CREATE NETWORK RULE
--- et CREATE INTEGRATION à l'application (cf. manifest.yml).
+-- Sur les comptes trial (erreur 509009), la creation echoue
+-- silencieusement : les procedures EAI restent en mode stub.
 -- ---------------------------------------------------------
-CREATE OR REPLACE NETWORK RULE APP_SCHEMA.EXTERNAL_APIS_RULE
-  TYPE       = HOST_PORT
-  MODE       = EGRESS
-  VALUE_LIST = (
-    'cloud.getdbt.com',
-    'api.fivetran.com',
-    'api.github.com'
-  );
+BEGIN
+    CREATE OR REPLACE NETWORK RULE APP_SCHEMA.EXTERNAL_APIS_RULE
+      TYPE       = HOST_PORT
+      MODE       = EGRESS
+      VALUE_LIST = (
+        'cloud.getdbt.com',
+        'api.fivetran.com',
+        'api.github.com'
+      );
 
-CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION SNOWSLED_EAI
-  ALLOWED_NETWORK_RULES          = (APP_SCHEMA.EXTERNAL_APIS_RULE)
-  ALLOWED_AUTHENTICATION_SECRETS = (
-    reference('GITHUB_SECRET'),
-    reference('DBT_CLOUD_SECRET'),
-    reference('FIVETRAN_SECRET')
-  )
-  ENABLED = TRUE;
+    CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION SNOWSLED_EAI
+      ALLOWED_NETWORK_RULES          = (APP_SCHEMA.EXTERNAL_APIS_RULE)
+      ALLOWED_AUTHENTICATION_SECRETS = (
+        reference('GITHUB_SECRET'),
+        reference('DBT_CLOUD_SECRET'),
+        reference('FIVETRAN_SECRET')
+      )
+      ENABLED = TRUE;
+EXCEPTION
+    WHEN OTHER THEN NULL; -- Non disponible sur les comptes trial (509009)
+END;
 
 -- ---------------------------------------------------------
 -- 2. TABLES DE CONFIGURATION
@@ -344,22 +348,32 @@ BEGIN
 END;
 $$;
 
--- Procedure pour tester une connexion externe
-CREATE OR REPLACE PROCEDURE APP_SCHEMA.TEST_CONNECTION(
-    P_CONNECTION_NAME VARCHAR
-)
-RETURNS VARIANT
-LANGUAGE PYTHON
-RUNTIME_VERSION = '3.11'
-PACKAGES = ('snowflake-snowpark-python', 'requests')
-EXTERNAL_ACCESS_INTEGRATIONS = (SNOWSLED_EAI)
-SECRETS = (
-    'github_token'   = reference('GITHUB_SECRET'),
-    'dbt_token'      = reference('DBT_CLOUD_SECRET'),
-    'fivetran_creds' = reference('FIVETRAN_SECRET')
-)
-HANDLER = 'test_connection'
-AS
+-- TEST_CONNECTION : stub trial-safe (sans EAI)
+CREATE OR REPLACE PROCEDURE APP_SCHEMA.TEST_CONNECTION(P_CONNECTION_NAME VARCHAR)
+RETURNS VARIANT LANGUAGE PYTHON RUNTIME_VERSION = '3.11'
+PACKAGES = ('snowflake-snowpark-python') HANDLER = 'test_connection'
+AS $$
+def test_connection(session, p_connection_name):
+    return {"status": "ERROR", "message": "Acces externe (EAI) non disponible sur ce compte"}
+$$;
+
+-- TEST_CONNECTION : version complete avec EAI (remplace le stub si EAI disponible)
+BEGIN
+    CREATE OR REPLACE PROCEDURE APP_SCHEMA.TEST_CONNECTION(
+        P_CONNECTION_NAME VARCHAR
+    )
+    RETURNS VARIANT
+    LANGUAGE PYTHON
+    RUNTIME_VERSION = '3.11'
+    PACKAGES = ('snowflake-snowpark-python', 'requests')
+    EXTERNAL_ACCESS_INTEGRATIONS = (SNOWSLED_EAI)
+    SECRETS = (
+        'github_token'   = reference('GITHUB_SECRET'),
+        'dbt_token'      = reference('DBT_CLOUD_SECRET'),
+        'fivetran_creds' = reference('FIVETRAN_SECRET')
+    )
+    HANDLER = 'test_connection'
+    AS
 $$
 import _snowflake
 import requests
@@ -441,6 +455,9 @@ def test_connection(session, connection_name):
     except Exception as e:
         return {"status": "ERROR", "message": str(e)}
 $$;
+EXCEPTION
+    WHEN OTHER THEN NULL; -- EAI non supporte sur ce compte
+END;
 
 -- ---------------------------------------------------------
 -- 6. PROCEDURE : DEPLOY_CORTEX_AGENT
@@ -848,6 +865,52 @@ CREATE OR REPLACE AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.SNOWFLAKE_MAINTENANCE_AGEN
 $$;
 
 -- ---------------------------------------------------------
+-- Stubs trial-safe pour les procedures EAI (proc 7 a 11)
+-- Remplacees par les versions completes si EAI disponible
+-- ---------------------------------------------------------
+CREATE OR REPLACE PROCEDURE APP_SCHEMA.TRIGGER_DBT_JOB(P_JOB_ID VARCHAR, P_CAUSE VARCHAR)
+RETURNS VARIANT LANGUAGE PYTHON RUNTIME_VERSION = '3.11'
+PACKAGES = ('snowflake-snowpark-python') HANDLER = 'handler'
+AS $$
+def handler(session, p_job_id, p_cause):
+    return {"status": "ERROR", "message": "Acces externe (EAI) non disponible sur ce compte"}
+$$;
+
+CREATE OR REPLACE PROCEDURE APP_SCHEMA.LIST_FIVETRAN_CONNECTORS(P_GROUP_ID VARCHAR)
+RETURNS VARIANT LANGUAGE PYTHON RUNTIME_VERSION = '3.11'
+PACKAGES = ('snowflake-snowpark-python') HANDLER = 'handler'
+AS $$
+def handler(session, p_group_id):
+    return {"error": "Acces externe (EAI) non disponible sur ce compte"}
+$$;
+
+CREATE OR REPLACE PROCEDURE APP_SCHEMA.CREATE_FIVETRAN_CONNECTOR(P_PAYLOAD VARCHAR)
+RETURNS VARIANT LANGUAGE PYTHON RUNTIME_VERSION = '3.11'
+PACKAGES = ('snowflake-snowpark-python') HANDLER = 'handler'
+AS $$
+def handler(session, p_payload):
+    return {"error": "Acces externe (EAI) non disponible sur ce compte"}
+$$;
+
+CREATE OR REPLACE PROCEDURE APP_SCHEMA.TRIGGER_FIVETRAN_SYNC(P_CONNECTOR_ID VARCHAR, P_FORCE_FULL_SYNC VARCHAR)
+RETURNS VARIANT LANGUAGE PYTHON RUNTIME_VERSION = '3.11'
+PACKAGES = ('snowflake-snowpark-python') HANDLER = 'handler'
+AS $$
+def handler(session, p_connector_id, p_force_full_sync):
+    return {"code": "ERROR", "message": "Acces externe (EAI) non disponible sur ce compte"}
+$$;
+
+CREATE OR REPLACE PROCEDURE APP_SCHEMA.CREATE_DBT_PROJECT(P_PAYLOAD VARCHAR)
+RETURNS VARIANT LANGUAGE PYTHON RUNTIME_VERSION = '3.11'
+PACKAGES = ('snowflake-snowpark-python') HANDLER = 'handler'
+AS $$
+def handler(session, p_payload):
+    return {"error": "Acces externe (EAI) non disponible sur ce compte"}
+$$;
+
+-- Versions completes avec EAI (remplacent les stubs si EAI disponible)
+BEGIN
+-- ---------------------------------------------------------
 -- 7. PROCEDURE : TRIGGER_DBT_JOB
 -- Declenche un job dbt Cloud via l'API REST
 -- ---------------------------------------------------------
@@ -1183,6 +1246,9 @@ def create_dbt_project(session, payload_str):
     except Exception as e:
         return {"error": str(e)}
 $$;
+EXCEPTION
+    WHEN OTHER THEN NULL; -- EAI non supporte sur ce compte
+END;
 
 GRANT USAGE ON SCHEMA APP_SCHEMA    TO APPLICATION ROLE APP_PUBLIC;
 GRANT USAGE ON SCHEMA CONFIG_SCHEMA TO APPLICATION ROLE APP_PUBLIC;
