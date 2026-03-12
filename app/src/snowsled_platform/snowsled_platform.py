@@ -263,6 +263,13 @@ elif page == "snowflake_setup":
     # -- Rôles
     with tab3:
         st.subheader("Création des rôles fonctionnels")
+        st.info(
+            "⚠️ **Limitation Snowflake Native App** : `CREATE ROLE` nécessite le rôle "
+            "`ACCOUNTADMIN` et ne peut pas être exécuté directement depuis une Native App. "
+            "Copiez le script SQL généré ci-dessous et exécutez-le dans un **Worksheet Snowsight** "
+            "avec le rôle `ACCOUNTADMIN`.",
+            icon="ℹ️",
+        )
 
         role_types = {
             "ADMIN":     "Accès complet sur les bases du projet",
@@ -282,13 +289,20 @@ elif page == "snowflake_setup":
             key="roles_sel",
         )
 
-        if st.button("Créer les rôles", key="btn_roles"):
+        if roles_to_create:
+            lines = ["USE ROLE ACCOUNTADMIN;", ""]
             for r in roles_to_create:
                 role_name = f"ROLE_{project_r}_{r}"
-                run_sql(f"""
-                    CREATE ROLE IF NOT EXISTS {role_name}
-                    COMMENT = '{role_types[r]} - Créé via Snowsled'
-                """, f"Rôle **{role_name}** créé.")
+                lines.append(
+                    f"CREATE ROLE IF NOT EXISTS {role_name}\n"
+                    f"    COMMENT = '{role_types[r]} - Créé via Snowsled';"
+                )
+            lines += [
+                "",
+                "-- Attribuer les rôles à votre utilisateur :",
+                f"-- GRANT ROLE ROLE_{project_r}_ADMIN TO USER <VOTRE_USERNAME>;",
+            ]
+            st.code("\n".join(lines), language="sql")
 
 # ── PAGE : Source Control (GitHub / GitLab / Azure DevOps) ───
 elif page == "git":
