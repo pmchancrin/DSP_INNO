@@ -22,13 +22,13 @@ USE ROLE ACCOUNTADMIN;
 CREATE LISTING IF NOT EXISTS SNOWSLED_V2_PRIVATE_LISTING
     FOR APPLICATION PACKAGE SNOWSLED_V2_PKG
     AS $$
-distribution: internal
 title: "Snowsled v2 - Pre-Sales POC Edition"
 subtitle: "Snowflake-native DataOps platform for pre-sales POCs"
 description: "Snowsled v2 - Native App Snowflake pour POC avant-vente."
 listing_terms:
   type: STANDARD
-$$;
+$$
+DISTRIBUTION = INTERNAL;
 
 -- -------------------------------------------------------
 -- Etape 2 : Activer la version v2 sur le package
