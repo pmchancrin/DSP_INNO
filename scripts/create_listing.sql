@@ -1,41 +1,40 @@
 -- ============================================================
 -- SNOWSLED v2 - Creation du listing Snowflake Marketplace
--- Prerequis :
---   1. Compte Provider actif (Provider Studio active)
---   2. Package SNOWSLED_V2_PKG cree avec distribution: external
---   3. Version v2 creee + release directive activee
+-- Prerequis (dans l'ordre) :
+--   1. Package SNOWSLED_V2_PKG ABSENT ou en distribution INTERNAL
+--      Si besoin (package EXTERNAL existant) :
+--        DROP APPLICATION IF EXISTS SNOWSLED_V2 CASCADE;
+--        DROP APPLICATION PACKAGE IF EXISTS SNOWSLED_V2_PKG;
+--   2. snow app run --connection beta
+--      (recrée le package avec distribution: internal)
+--   3. snow app version create v2 --connection beta
+--      (crée la version nécessaire à la release directive)
+--   4. Exécuter CE script
 -- Role requis : ACCOUNTADMIN sur le compte Provider
 -- ============================================================
 
 USE ROLE ACCOUNTADMIN;
-USE DATABASE SNOWSLED_V2_PKG;
 
 -- -------------------------------------------------------
--- Option A : Listing PRIVE (partage cible, ex. client POC)
--- Modifier les valeurs entre < > avant d'executer.
+-- Etape 1 : Créer le listing INTERNE
+-- (visible uniquement dans votre organisation Snowflake)
 -- -------------------------------------------------------
 CREATE LISTING IF NOT EXISTS SNOWSLED_V2_PRIVATE_LISTING
     FOR APPLICATION PACKAGE SNOWSLED_V2_PKG
     AS $$
-        title: "Snowsled v2 - Pre-Sales POC Edition"
-        subtitle: "Snowflake-native DataOps platform for pre-sales POCs"
-        distribution: EXTERNAL
-        description: |
-            Snowsled v2 est une application native Snowflake permettant de :
-            - Configurer un compte Snowflake (warehouses, bases, roles)
-            - Connecter GitHub, dbt Cloud et Fivetran en quelques clics
-            - Gerer la convention de nommage (DSI, DSO, ...)
-            - Creer et mettre a jour des objets de donnees par projet
-            - Monitorer les couts et la conformite via FinOps Monitor + Cortex AI
-        listing_terms:
-            type: "OFFLINE"
-        targets:
-            accounts:
-                - "<ACCOUNT_LOCATOR_CLIENT_1>"   # remplacer par l'identifiant du compte consumer
-    $$;
+distribution: internal
+title: "Snowsled v2 - Pre-Sales POC Edition"
+subtitle: "Snowflake-native DataOps platform for pre-sales POCs"
+description: "Snowsled v2 - Native App Snowflake pour POC avant-vente."
+listing_terms:
+  type: STANDARD
+$$;
 
--- Publier la version v2 vers ce listing
-ALTER LISTING SNOWSLED_V2_PRIVATE_LISTING
+-- -------------------------------------------------------
+-- Etape 2 : Activer la version v2 sur le package
+-- (la version doit exister : snow app version create v2)
+-- -------------------------------------------------------
+ALTER APPLICATION PACKAGE SNOWSLED_V2_PKG
     SET DEFAULT RELEASE DIRECTIVE
     VERSION = v2
     PATCH   = 0;
