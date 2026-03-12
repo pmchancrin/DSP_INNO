@@ -22,8 +22,6 @@ privileges:
       description: "Create project databases (DSI/DSO) for each Snowsled project"
   - CREATE WAREHOUSE:
       description: "Create a dedicated warehouse for each Snowsled project"
-  - CREATE NETWORK RULE:
-      description: "Crée les règles réseau autorisant les appels HTTPS sortants vers dbt Cloud, Fivetran et GitHub"
   - CREATE INTEGRATION:
       description: "Crée l'External Access Integration permettant aux procédures stockées d'appeler les APIs tierces"
 
