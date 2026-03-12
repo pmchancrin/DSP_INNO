@@ -1,5 +1,7 @@
 # Credentials locaux — NE JAMAIS COMMITTER
 .env
+*.p8
+*.pem
 
 # Python
 __pycache__/
