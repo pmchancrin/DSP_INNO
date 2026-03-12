@@ -329,7 +329,7 @@ elif page == "github":
             run_sql(f"""
                 CREATE OR REPLACE SECRET {secret_name}
                   TYPE = GENERIC_STRING
-                  SECRET_STRING = '{gh_pat}'
+                  SECRET_STRING = $${gh_pat}$$
                   COMMENT = 'GitHub PAT - Snowsled'
             """)
             upsert_connection(
@@ -399,7 +399,7 @@ elif page == "dbt":
             run_sql(f"""
                 CREATE OR REPLACE SECRET {secret_name}
                   TYPE = GENERIC_STRING
-                  SECRET_STRING = '{dbt_api_key}'
+                  SECRET_STRING = $${dbt_api_key}$$
                   COMMENT = 'dbt Cloud API Token - Snowsled'
             """)
             upsert_connection(
