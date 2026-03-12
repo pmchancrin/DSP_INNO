@@ -19,6 +19,7 @@ CREATE LISTING IF NOT EXISTS SNOWSLED_V2_PRIVATE_LISTING
     AS $$
         title: "Snowsled v2 - Pre-Sales POC Edition"
         subtitle: "Snowflake-native DataOps platform for pre-sales POCs"
+        distribution: EXTERNAL
         description: |
             Snowsled v2 est une application native Snowflake permettant de :
             - Configurer un compte Snowflake (warehouses, bases, roles)
