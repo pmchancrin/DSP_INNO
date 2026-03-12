@@ -9,6 +9,35 @@
 
 ---
 
+## Pourquoi Snowsled ?
+
+Démarrer un POC Snowflake de A à Z prend habituellement **plusieurs jours** : création du compte, configuration des rôles, connexion aux outils tiers (dbt, Fivetran, GitHub…), mise en place des bases DSI/DSO, suivi des coûts. Snowsled ramène ce délai à **moins de 15 minutes**.
+
+L'application s'adresse principalement aux **ingénieurs avant-vente et consultants Snowflake** qui doivent monter des environnements de démonstration reproductibles, sans dépendre d'scripts manuels ni d'un accès à l'infrastructure du client.
+
+### Problèmes résolus
+
+| Problème terrain | Ce que Snowsled apporte |
+|---|---|
+| Configuration répétitive et sujette aux erreurs | Formulaires guidés, stockage des paramètres en base, idempotence totale |
+| Multiples outils externes à brancher à la main | Connexions GitHub / GitLab / Azure DevOps / dbt Cloud / Fivetran depuis un seul écran |
+| Convention de nommage incohérente entre POCs | Module dédié : règles configurables par couche (DSI, DSO, RAW, CURATED…) |
+| Pas de visibilité sur les coûts pendant le POC | **FinOps Monitor** : dashboard temps réel des crédits consommés, alertes de dérive |
+| Gouvernance et conformité ignorées en avant-vente | Module Compliance : audit des paramètres de sécurité, génération de rapport |
+| Application difficile à livrer au client | Snowflake Native App — s'installe en 1 clic depuis le Marketplace, aucun accès infra requis |
+
+### Pour qui ?
+
+- **Ingénieur avant-vente / Solutions Engineer** — monter un POC client en autonomie, sans aide des ops
+- **Consultant DataOps** — standardiser les démarrages de projet sur une base de référence
+- **Customer Success / TAM** — accélérer l'onboarding d'un nouveau compte
+
+### Ce que Snowsled n'est pas
+
+Snowsled est un outil de **démarrage de POC**, pas une plateforme de production. Il ne remplace pas dbt Core, Fivetran ou un orchestrateur : il les connecte et les pilote le temps de démontrer la valeur, puis laisse la place aux outils définitifs du client.
+
+---
+
 ## Table des matières
 
 - [Vue d'ensemble](#vue-densemble)
